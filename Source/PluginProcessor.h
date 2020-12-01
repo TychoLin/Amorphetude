@@ -30,7 +30,8 @@ DECLARE_ID(autowahBypass)
 DECLARE_ID(autowahMode)
 DECLARE_ID(autowahTempo)
 DECLARE_ID(autowahRatio)
-DECLARE_ID(autowahMix)
+DECLARE_ID(autowahFrom)
+DECLARE_ID(autowahTo)
 
 DECLARE_ID(echoBypass)
 DECLARE_ID(echoTempo)
@@ -205,31 +206,33 @@ public:
         : parameters(*this,
                      nullptr,
                      PLUGIN_IDs::autowah,
-                     { std::make_unique<AudioParameterChoice>(PARAMETER_IDs::autowahMode, "Wah-Wah Mode", StringArray { "LP12", "LP24", "BP12", "BP24", "HP12", "HP24" }, 2),
-                       std::make_unique<AudioParameterFloat>(PARAMETER_IDs::autowahTempo, "Wah-Wah Tempo", NormalisableRange<float>(20.0f, 400.0f), 100.0f, "BPM"),
-                       std::make_unique<AudioParameterChoice>(PARAMETER_IDs::autowahRatio, "Wah-Wah Ratio", StringArray { "1", "1/2", "1/3", "1/4" }, 0) })
+                     { std::make_unique<AudioParameterChoice>(PARAMETER_IDs::autowahMode, "Auto-Wah Mode", StringArray { "LP12", "LP24", "BP12", "BP24", "HP12", "HP24" }, 2),
+                       std::make_unique<AudioParameterFloat>(PARAMETER_IDs::autowahTempo, "Auto-Wah Tempo", NormalisableRange<float>(20.0f, 400.0f), 100.0f, "BPM"),
+                       std::make_unique<AudioParameterFloat>(PARAMETER_IDs::autowahRatio, "Auto-Wah Ratio", NormalisableRange<float>(0.01f, 1.0f), 0.25f),
+                       std::make_unique<AudioParameterFloat>(PARAMETER_IDs::autowahFrom, "Auto-Wah From", NormalisableRange<float>(20.0f, 22000.0f, 0.0f, 0.25f), 500.0f, "Hz"),
+                       std::make_unique<AudioParameterFloat>(PARAMETER_IDs::autowahTo, "Auto-Wah To", NormalisableRange<float>(20.0f, 22000.0f, 0.0f, 0.25f), 3000.0f, "Hz") })
     {
         parameters.addParameterListener(PARAMETER_IDs::autowahMode, this);
         parameters.addParameterListener(PARAMETER_IDs::autowahTempo, this);
         parameters.addParameterListener(PARAMETER_IDs::autowahRatio, this);
+        parameters.addParameterListener(PARAMETER_IDs::autowahFrom, this);
+        parameters.addParameterListener(PARAMETER_IDs::autowahTo, this);
 
         parameterChanged(PARAMETER_IDs::autowahMode, *parameters.getRawParameterValue(PARAMETER_IDs::autowahMode));
         parameterChanged(PARAMETER_IDs::autowahTempo, *parameters.getRawParameterValue(PARAMETER_IDs::autowahTempo));
         parameterChanged(PARAMETER_IDs::autowahRatio, *parameters.getRawParameterValue(PARAMETER_IDs::autowahRatio));
+        parameterChanged(PARAMETER_IDs::autowahFrom, *parameters.getRawParameterValue(PARAMETER_IDs::autowahFrom));
+        parameterChanged(PARAMETER_IDs::autowahTo, *parameters.getRawParameterValue(PARAMETER_IDs::autowahTo));
 
-        ladder.setCutoffFrequencyHz(500.0f);
+        ladder.setCutoffFrequencyHz(autowahFrom);
         ladder.setResonance(0.7f);
-
-        smoothFilter.setType(dsp::FirstOrderTPTFilterType::lowpass);
     }
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override
     {
         dsp::ProcessSpec spec { sampleRate, static_cast<uint32>(samplesPerBlock), 2 };
 
-        prepareAll(spec, ladder, smoothFilter);
-
-        smoothFilter.reset(500.0f);
+        prepareAll(spec, ladder);
 
         reset();
     }
@@ -243,20 +246,19 @@ public:
         const auto& outputBlock = context.getOutputBlock();
         const auto numSamples = inputBlock.getNumSamples();
 
-        float cutoffFreqHz = autowahTempo * 2.0f / (60.0f * autowahRatio);
-        float alpha = std::exp(-std::log(9) / getSampleRate() * cutoffFreqHz);
+        float wahTime = 60.0f / autowahTempo * autowahRatio;
+        float alpha = std::exp(-std::log(9) / (getSampleRate() * wahTime));
 
         for (size_t i = 0; i < numSamples; ++i)
         {
-            // assume the attack of audio channel 0 decide wah-wah effect
+            // assume the attack of audio channel 0 decide auto-wah effect
             absInput = std::abs(inputBlock.getSample(0, (int) i));
 
-            slowEnv = (1.0f - alpha) * absInput + alpha * slowLastOut;
+            wahEnv = (1.0f - alpha) * absInput + alpha * lastWahEnv;
 
-            smoothFilter.setCutoffFrequency(cutoffFreqHz);
-            smoothCutoffFreqHz = smoothFilter.processSample(0, jmin(500.0f + 2500.0f * slowEnv, 3000.0f));
+            smoothCutoffFreqHz = jmin(autowahFrom + wahEnv * autowahTo, autowahTo);
 
-            slowLastOut = slowEnv;
+            lastWahEnv = wahEnv;
 
             ladder.setCutoffFrequencyHz(smoothCutoffFreqHz);
 
@@ -268,11 +270,11 @@ public:
 
     void reset() override
     {
-        resetAll(ladder, smoothFilter);
+        resetAll(ladder);
 
         absInput = 0.0f;
-        slowEnv = 0.0f;
-        slowLastOut = 0.0f;
+        wahEnv = 0.0f;
+        lastWahEnv = 0.0f;
     }
 
     AudioProcessorEditor* createEditor() override { return new GenericAudioProcessorEditor(*this); }
@@ -305,7 +307,11 @@ public:
         else if (parameterID == PARAMETER_IDs::autowahTempo)
             autowahTempo = newValue;
         else if (parameterID == PARAMETER_IDs::autowahRatio)
-            autowahRatio = autowahRatios[(int) newValue];
+            autowahRatio = newValue;
+        else if (parameterID == PARAMETER_IDs::autowahFrom)
+            autowahFrom = newValue;
+        else if (parameterID == PARAMETER_IDs::autowahTo)
+            autowahTo = newValue;
     }
 
     ValueTree getParametersValueTree() override
@@ -323,21 +329,17 @@ private:
     AudioProcessorValueTreeState parameters;
 
     dsp::LadderFilter<float> ladder;
-    dsp::FirstOrderTPTFilter<float> smoothFilter;
 
     float smoothCutoffFreqHz;
 
     float autowahTempo;
-
-    static constexpr double autowahRatios[4] { 1.0,
-                                               1.0 / 2.0,
-                                               1.0 / 3.0,
-                                               1.0 / 4.0 };
-    double autowahRatio;
+    float autowahRatio;
+    float autowahFrom;
+    float autowahTo;
 
     float absInput;
-    float slowEnv;
-    float slowLastOut;
+    float wahEnv;
+    float lastWahEnv;
 };
 
 class EchoProcessor : public ProcessorBase, AudioProcessorValueTreeState::Listener

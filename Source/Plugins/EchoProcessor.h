@@ -1,6 +1,6 @@
 #include "ProcessorBase.h"
 
-class EchoProcessor : public ProcessorBase, AudioProcessorValueTreeState::Listener
+class EchoProcessor : public ProcessorBase, public AudioProcessorValueTreeState::Listener
 {
 public:
     EchoProcessor()
@@ -79,6 +79,8 @@ public:
 
     AudioProcessorEditor* createEditor() override { return new GenericAudioProcessorEditor(*this); }
     bool hasEditor() const override { return true; }
+
+    const String getName() const override { return PLUGIN_IDs::echo.toString(); }
 
     void parameterChanged(const String& parameterID, float newValue) override
     {

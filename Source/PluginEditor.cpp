@@ -4,7 +4,7 @@
 AmorphetudeAudioProcessorEditor::AmorphetudeAudioProcessorEditor(AmorphetudeAudioProcessor& parent)
     : GenericAudioProcessorEditor(parent), audioProcessor(parent)
 {
-    setSize(600, 800);
+    setSize(600, 400);
 }
 
 AmorphetudeAudioProcessorEditor::~AmorphetudeAudioProcessorEditor()
@@ -14,19 +14,16 @@ AmorphetudeAudioProcessorEditor::~AmorphetudeAudioProcessorEditor()
 void AmorphetudeAudioProcessorEditor::resized()
 {
     float parentHeight = (float) getChildren().getFirst()->getHeight();
-    auto& audioProcessorEditors = static_cast<AmorphetudeAudioProcessor*>(&audioProcessor)->getAudioProcessorEditors();
+    auto& audioProcessorEditorMap = static_cast<AmorphetudeAudioProcessor*>(&audioProcessor)->getAudioProcessorEditorMap();
 
-    FlexBox fb;
+    auto bounds = getLocalBounds();
+    bounds.removeFromTop(parentHeight);
 
-    fb.flexDirection = FlexBox::Direction::column;
-
-    fb.items.add(FlexItem(*getChildren().getFirst()).withFlex(0, 1, parentHeight));
-
-    for (auto* audioProcessorEditor : audioProcessorEditors)
+    for (auto& item : audioProcessorEditorMap)
     {
-        addAndMakeVisible(audioProcessorEditor);
-        fb.items.add(FlexItem(*audioProcessorEditor).withFlex(0, 1, audioProcessorEditor->getHeight()));
-    }
+        if (findChildWithID(item.first) == nullptr)
+            addChildAndSetID(item.second, item.first);
 
-    fb.performLayout(getLocalBounds().toFloat());
+        item.second->setBounds(bounds);
+    }
 }

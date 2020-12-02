@@ -21,6 +21,8 @@ namespace PARAMETER_IDs
 {
 #define DECLARE_ID(str) constexpr const char* str { #str };
 
+DECLARE_ID(effectSelector)
+
 DECLARE_ID(overdriveBypass)
 DECLARE_ID(overdriveTone)
 DECLARE_ID(overdriveGain)

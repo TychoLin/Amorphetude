@@ -1,6 +1,6 @@
 #include "ProcessorBase.h"
 
-class OverdriveProcessor : public ProcessorBase, AudioProcessorValueTreeState::Listener
+class OverdriveProcessor : public ProcessorBase, public AudioProcessorValueTreeState::Listener
 {
 public:
     OverdriveProcessor()
@@ -66,6 +66,8 @@ public:
 
     AudioProcessorEditor* createEditor() override { return new GenericAudioProcessorEditor(*this); }
     bool hasEditor() const override { return true; }
+
+    const String getName() const override { return PLUGIN_IDs::overdrive.toString(); }
 
     void parameterChanged(const String& parameterID, float newValue) override
     {

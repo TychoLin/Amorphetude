@@ -1,11 +1,13 @@
 #pragma once
 
-#include "Plugins/OverdriveProcessor.h"
-#include "Plugins/AutoWahProcessor.h"
-#include "Plugins/EchoProcessor.h"
-#include "Plugins/BitCrushingProcessor.h"
+#include <map>
 
-class AmorphetudeAudioProcessor : public AudioProcessor, AudioProcessorValueTreeState::Listener
+#include "Plugins/AutoWahProcessor.h"
+#include "Plugins/BitCrushingProcessor.h"
+#include "Plugins/EchoProcessor.h"
+#include "Plugins/OverdriveProcessor.h"
+
+class AmorphetudeAudioProcessor : public AudioProcessor, public AudioProcessorValueTreeState::Listener
 {
 public:
     using AudioGraphIOProcessor = AudioProcessorGraph::AudioGraphIOProcessor;
@@ -52,19 +54,27 @@ public:
             bypassParameters[2] = newValue > 0.5f ? true : false;
         else if (parameterID == PARAMETER_IDs::bitCrushingBypass)
             bypassParameters[3] = newValue > 0.5f ? true : false;
+        else if (parameterID == PARAMETER_IDs::effectSelector)
+        {
+            for (auto& item : audioProcessorEditorMap)
+                item.second->setVisible(item.first == processorChoices[(int) newValue]);
+        }
     }
 
-    std::vector<AudioProcessorEditor*>& getAudioProcessorEditors()
+    std::map<String, AudioProcessorEditor*>& getAudioProcessorEditorMap()
     {
-        audioProcessorEditors.clear();
-
-        for (auto* slotNode : slots)
+        for (auto slot : slots)
         {
-            if (slotNode != nullptr)
-                audioProcessorEditors.push_back(slotNode->getProcessor()->createEditor());
+            if (slot != nullptr)
+            {
+                auto* processor = slot->getProcessor();
+
+                if (audioProcessorEditorMap.count(processor->getName()) == 0)
+                    audioProcessorEditorMap[processor->getName()] = processor->createEditor();
+            }
         }
 
-        return audioProcessorEditors;
+        return audioProcessorEditorMap;
     }
 
 private:
@@ -177,10 +187,10 @@ private:
     {
         ValueTree pluginVT { PLUGIN_IDs::PLUGIN_VALUE_TREE, {}, {} };
 
-        for (auto* slotNode : slots)
+        for (auto slot : slots)
         {
-            if (slotNode != nullptr)
-                pluginVT.appendChild(static_cast<ProcessorBase*>(slotNode->getProcessor())->getParametersValueTree(), nullptr);
+            if (slot != nullptr)
+                pluginVT.appendChild(static_cast<ProcessorBase*>(slot->getProcessor())->getParametersValueTree(), nullptr);
         }
 
         pluginVT.appendChild(parameters.copyState(), nullptr);
@@ -212,12 +222,14 @@ private:
         return hasChanged;
     }
 
-    std::unique_ptr<AudioProcessorGraph> mainProcessor;
+    std::array<bool, 4> bypassParameters;
+    StringArray processorChoices { PLUGIN_IDs::overdrive.toString(),
+                                   PLUGIN_IDs::autowah.toString(),
+                                   PLUGIN_IDs::echo.toString(),
+                                   PLUGIN_IDs::bitCrushing.toString() };
 
     ValueTree pluginValueTree;
     AudioProcessorValueTreeState parameters;
-
-    std::array<bool, 4> bypassParameters;
 
     Node::Ptr audioInputNode;
     Node::Ptr audioOutputNode;
@@ -231,7 +243,9 @@ private:
     Node::Ptr slot3Node;
     Node::Ptr slot4Node;
 
-    std::vector<AudioProcessorEditor*> audioProcessorEditors;
+    std::map<String, AudioProcessorEditor*> audioProcessorEditorMap;
+
+    std::unique_ptr<AudioProcessorGraph> mainProcessor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AmorphetudeAudioProcessor)
 };

@@ -1,6 +1,6 @@
 #include "ProcessorBase.h"
 
-class BitCrushingProcessor : public ProcessorBase, AudioProcessorValueTreeState::Listener
+class BitCrushingProcessor : public ProcessorBase, public AudioProcessorValueTreeState::Listener
 {
 public:
     BitCrushingProcessor()
@@ -63,6 +63,8 @@ public:
 
     AudioProcessorEditor* createEditor() override { return new GenericAudioProcessorEditor(*this); }
     bool hasEditor() const override { return true; }
+
+    const String getName() const override { return PLUGIN_IDs::bitCrushing.toString(); }
 
     void parameterChanged(const String& parameterID, float newValue) override
     {

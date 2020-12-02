@@ -1,6 +1,6 @@
 #include "ProcessorBase.h"
 
-class AutoWahProcessor : public ProcessorBase, AudioProcessorValueTreeState::Listener
+class AutoWahProcessor : public ProcessorBase, public AudioProcessorValueTreeState::Listener
 {
 public:
     AutoWahProcessor()
@@ -80,6 +80,8 @@ public:
 
     AudioProcessorEditor* createEditor() override { return new GenericAudioProcessorEditor(*this); }
     bool hasEditor() const override { return true; }
+
+    const String getName() const override { return PLUGIN_IDs::autowah.toString(); }
 
     void parameterChanged(const String& parameterID, float newValue) override
     {

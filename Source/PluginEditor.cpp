@@ -4,7 +4,7 @@
 AmorphetudeAudioProcessorEditor::AmorphetudeAudioProcessorEditor(AmorphetudeAudioProcessor& parent)
     : GenericAudioProcessorEditor(parent), audioProcessor(parent)
 {
-    setSize(600, 400);
+    setSize(600, 480);
 }
 
 AmorphetudeAudioProcessorEditor::~AmorphetudeAudioProcessorEditor()
@@ -25,5 +25,6 @@ void AmorphetudeAudioProcessorEditor::resized()
             addChildAndSetID(item.second, item.first);
 
         item.second->setBounds(bounds);
+        item.second->setVisible(audioProcessor.getSelectedEffectName() == item.first);
     }
 }

@@ -9,6 +9,7 @@ namespace PLUGIN_IDs
 DECLARE_ID(PLUGIN_VALUE_TREE)
 
 DECLARE_ID(amorphetude)
+DECLARE_ID(compressor)
 DECLARE_ID(overdrive)
 DECLARE_ID(autowah)
 DECLARE_ID(echo)
@@ -22,6 +23,12 @@ namespace PARAMETER_IDs
 #define DECLARE_ID(str) constexpr const char* str { #str };
 
 DECLARE_ID(effectSelector)
+
+DECLARE_ID(compressorBypass)
+DECLARE_ID(compressorThreshold)
+DECLARE_ID(compressorRatio)
+DECLARE_ID(compressorAttack)
+DECLARE_ID(compressorRelease)
 
 DECLARE_ID(overdriveBypass)
 DECLARE_ID(overdriveTone)

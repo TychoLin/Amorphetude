@@ -11,10 +11,6 @@ public:
                        std::make_unique<AudioParameterFloat>(PARAMETER_IDs::overdriveGain, "Overdrive Gain", NormalisableRange<float>(-40.0f, 40.0f), 0.0f, "dB"),
                        std::make_unique<AudioParameterFloat>(PARAMETER_IDs::overdriveMixer, "Overdrive Mix", NormalisableRange<float>(0.0f, 100.0f), 100.0f, "%") })
     {
-        waveShaper.functionToUse = [](float x) {
-            return std::sin(x);
-        };
-
         parameters.addParameterListener(PARAMETER_IDs::overdriveTone, this);
         parameters.addParameterListener(PARAMETER_IDs::overdriveGain, this);
         parameters.addParameterListener(PARAMETER_IDs::overdriveMixer, this);
@@ -22,6 +18,10 @@ public:
         parameterChanged(PARAMETER_IDs::overdriveTone, *parameters.getRawParameterValue(PARAMETER_IDs::overdriveTone));
         parameterChanged(PARAMETER_IDs::overdriveGain, *parameters.getRawParameterValue(PARAMETER_IDs::overdriveGain));
         parameterChanged(PARAMETER_IDs::overdriveMixer, *parameters.getRawParameterValue(PARAMETER_IDs::overdriveMixer));
+
+        waveShaper.functionToUse = [](float x) {
+            return std::sin(x);
+        };
     }
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override

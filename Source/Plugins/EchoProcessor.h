@@ -18,12 +18,12 @@ public:
         parameters.addParameterListener(PARAMETER_IDs::echoFeedback, this);
         parameters.addParameterListener(PARAMETER_IDs::echoMix, this);
 
-        smoothFilter.setType(dsp::FirstOrderTPTFilterType::lowpass);
-
         parameterChanged(PARAMETER_IDs::echoRatio, *parameters.getRawParameterValue(PARAMETER_IDs::echoRatio));
         parameterChanged(PARAMETER_IDs::echoSmooth, *parameters.getRawParameterValue(PARAMETER_IDs::echoSmooth));
         parameterChanged(PARAMETER_IDs::echoFeedback, *parameters.getRawParameterValue(PARAMETER_IDs::echoFeedback));
         parameterChanged(PARAMETER_IDs::echoMix, *parameters.getRawParameterValue(PARAMETER_IDs::echoMix));
+
+        smoothFilter.setType(dsp::FirstOrderTPTFilterType::lowpass);
     }
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override

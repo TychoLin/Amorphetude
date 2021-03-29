@@ -11,14 +11,16 @@ AmorphetudeAudioProcessor::AmorphetudeAudioProcessor()
       parameters(*this,
                  nullptr,
                  PLUGIN_IDs::amorphetude,
-                 { std::make_unique<AudioParameterBool>(PARAMETER_IDs::compressorBypass, "Compressor Bypass", false),
-                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::overdriveBypass, "Overdrive Bypass", false),
-                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::autowahBypass, "Auto-Wah Bypass", false),
-                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::echoBypass, "Echo Bypass", false),
+                 { std::make_unique<AudioParameterBool>(PARAMETER_IDs::compressorBypass, "Compressor Bypass", true),
+                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::morphingBypass, "Morphing Bypass", true),
+                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::overdriveBypass, "Overdrive Bypass", true),
+                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::autowahBypass, "Auto-Wah Bypass", true),
+                   std::make_unique<AudioParameterBool>(PARAMETER_IDs::echoBypass, "Echo Bypass", true),
                    std::make_unique<AudioParameterBool>(PARAMETER_IDs::bitCrushingBypass, "Bit Crushing Bypass", true),
                    std::make_unique<AudioParameterChoice>(PARAMETER_IDs::effectSelector, "Effect Selector", processorChoices, 0) })
 {
     parameters.addParameterListener(PARAMETER_IDs::compressorBypass, this);
+    parameters.addParameterListener(PARAMETER_IDs::morphingBypass, this);
     parameters.addParameterListener(PARAMETER_IDs::overdriveBypass, this);
     parameters.addParameterListener(PARAMETER_IDs::autowahBypass, this);
     parameters.addParameterListener(PARAMETER_IDs::echoBypass, this);
@@ -26,6 +28,7 @@ AmorphetudeAudioProcessor::AmorphetudeAudioProcessor()
     parameters.addParameterListener(PARAMETER_IDs::effectSelector, this);
 
     parameterChanged(PARAMETER_IDs::compressorBypass, *parameters.getRawParameterValue(PARAMETER_IDs::compressorBypass));
+    parameterChanged(PARAMETER_IDs::morphingBypass, *parameters.getRawParameterValue(PARAMETER_IDs::morphingBypass));
     parameterChanged(PARAMETER_IDs::overdriveBypass, *parameters.getRawParameterValue(PARAMETER_IDs::overdriveBypass));
     parameterChanged(PARAMETER_IDs::autowahBypass, *parameters.getRawParameterValue(PARAMETER_IDs::autowahBypass));
     parameterChanged(PARAMETER_IDs::echoBypass, *parameters.getRawParameterValue(PARAMETER_IDs::echoBypass));

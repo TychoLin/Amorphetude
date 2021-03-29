@@ -6,6 +6,7 @@
 #include "Plugins/BitCrushingProcessor.h"
 #include "Plugins/CompressorProcessor.h"
 #include "Plugins/EchoProcessor.h"
+#include "Plugins/MorphingProcessor.h"
 #include "Plugins/OverdriveProcessor.h"
 
 class AmorphetudeAudioProcessor : public AudioProcessor, public AudioProcessorValueTreeState::Listener
@@ -49,14 +50,16 @@ public:
     {
         if (parameterID == PARAMETER_IDs::compressorBypass)
             bypassParameters[0] = newValue > 0.5f ? true : false;
-        else if (parameterID == PARAMETER_IDs::overdriveBypass)
+        else if (parameterID == PARAMETER_IDs::morphingBypass)
             bypassParameters[1] = newValue > 0.5f ? true : false;
-        else if (parameterID == PARAMETER_IDs::autowahBypass)
+        else if (parameterID == PARAMETER_IDs::overdriveBypass)
             bypassParameters[2] = newValue > 0.5f ? true : false;
-        else if (parameterID == PARAMETER_IDs::echoBypass)
+        else if (parameterID == PARAMETER_IDs::autowahBypass)
             bypassParameters[3] = newValue > 0.5f ? true : false;
-        else if (parameterID == PARAMETER_IDs::bitCrushingBypass)
+        else if (parameterID == PARAMETER_IDs::echoBypass)
             bypassParameters[4] = newValue > 0.5f ? true : false;
+        else if (parameterID == PARAMETER_IDs::bitCrushingBypass)
+            bypassParameters[5] = newValue > 0.5f ? true : false;
         else if (parameterID == PARAMETER_IDs::effectSelector)
         {
             selectedEffectIndex = (int) newValue;
@@ -102,6 +105,7 @@ private:
         slots.add(slot3Node);
         slots.add(slot4Node);
         slots.add(slot5Node);
+        slots.add(slot6Node);
     }
 
     void updateGraph()
@@ -109,10 +113,11 @@ private:
         bool hasChanged = false;
 
         hasChanged = createAndUpdateSlot<CompressorProcessor>(0, PLUGIN_IDs::compressor);
-        hasChanged = createAndUpdateSlot<OverdriveProcessor>(1, PLUGIN_IDs::overdrive);
-        hasChanged = createAndUpdateSlot<AutoWahProcessor>(2, PLUGIN_IDs::autowah);
-        hasChanged = createAndUpdateSlot<EchoProcessor>(3, PLUGIN_IDs::echo);
-        hasChanged = createAndUpdateSlot<BitCrushingProcessor>(4, PLUGIN_IDs::bitCrushing);
+        hasChanged = createAndUpdateSlot<MorphingProcessor>(1, PLUGIN_IDs::morphing);
+        hasChanged = createAndUpdateSlot<OverdriveProcessor>(2, PLUGIN_IDs::overdrive);
+        hasChanged = createAndUpdateSlot<AutoWahProcessor>(3, PLUGIN_IDs::autowah);
+        hasChanged = createAndUpdateSlot<EchoProcessor>(4, PLUGIN_IDs::echo);
+        hasChanged = createAndUpdateSlot<BitCrushingProcessor>(5, PLUGIN_IDs::bitCrushing);
 
         if (hasChanged)
         {
@@ -167,6 +172,7 @@ private:
         slot3Node = slots.getUnchecked(2);
         slot4Node = slots.getUnchecked(3);
         slot5Node = slots.getUnchecked(4);
+        slot6Node = slots.getUnchecked(5);
 
         // bypass setting
         Node::Ptr slot;
@@ -232,9 +238,10 @@ private:
         return hasChanged;
     }
 
-    std::array<bool, 5> bypassParameters;
+    std::array<bool, 6> bypassParameters;
     int selectedEffectIndex = 0;
     StringArray processorChoices { PLUGIN_IDs::compressor.toString(),
+                                   PLUGIN_IDs::morphing.toString(),
                                    PLUGIN_IDs::overdrive.toString(),
                                    PLUGIN_IDs::autowah.toString(),
                                    PLUGIN_IDs::echo.toString(),
@@ -255,6 +262,7 @@ private:
     Node::Ptr slot3Node;
     Node::Ptr slot4Node;
     Node::Ptr slot5Node;
+    Node::Ptr slot6Node;
 
     std::map<String, AudioProcessorEditor*> audioProcessorEditorMap;
 

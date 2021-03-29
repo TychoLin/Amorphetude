@@ -13,6 +13,7 @@ DECLARE_ID(compressor)
 DECLARE_ID(overdrive)
 DECLARE_ID(autowah)
 DECLARE_ID(echo)
+DECLARE_ID(morphing)
 DECLARE_ID(bitCrushing)
 
 #undef DECLARE_ID
@@ -48,6 +49,13 @@ DECLARE_ID(echoRatio)
 DECLARE_ID(echoSmooth)
 DECLARE_ID(echoFeedback)
 DECLARE_ID(echoMix)
+
+DECLARE_ID(morphingBypass)
+DECLARE_ID(morphingSemitone)
+DECLARE_ID(morphingAnalysisThreshold)
+DECLARE_ID(morphingRatio)
+DECLARE_ID(morphingWindowSize)
+DECLARE_ID(morphingHopSize)
 
 DECLARE_ID(bitCrushingBypass)
 DECLARE_ID(bitCrushingDepth)

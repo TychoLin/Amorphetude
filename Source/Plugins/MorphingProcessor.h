@@ -119,7 +119,7 @@ private:
               unwrappedWindowBuffer(windowSize),
               unwrappedGrainBuffer(fftSize),
               unwrappedSineBuffer(fftSize),
-              decibelData(fftSize / 2 + 1),
+              analysisDecibels(fftSize / 2 + 1),
               analysisBins(fftSize / 2 + 1),
               lastInputPhases(fftSize / 2 + 1),
               lastOutputPhases(fftSize / 2 + 1)
@@ -170,12 +170,12 @@ private:
                 float binDeviation = (phaseDiff / hopSize) * fftSize / MathConstants<float>::twoPi;
                 analysisBins[i] = i + binDeviation;
 
-                decibelData[i] = Decibels::gainToDecibels(std::abs(fftComplexData[i]));
+                analysisDecibels[i] = Decibels::gainToDecibels(std::abs(fftComplexData[i]));
 
                 lastInputPhases[i] = phase;
 
                 // if (analysisBins[i] < 0)
-                //     DBG("i: " << i << " binDeviation: " << binDeviation << " dB: " << decibelData[i]);
+                //     DBG("i: " << i << " binDeviation: " << binDeviation << " dB: " << analysisDecibels[i]);
             }
 
             localMaximaCounter = 0;
@@ -183,9 +183,9 @@ private:
 
             for (int i = 1; i < fftSize / 2 && localMaximaCounter < sinusoidalNum; ++i)
             {
-                if (decibelData[i - 1] < decibelData[i] && decibelData[i] > decibelData[i + 1])
+                if (analysisDecibels[i - 1] < analysisDecibels[i] && analysisDecibels[i] > analysisDecibels[i + 1])
                 {
-                    if (decibelData[i] - Decibels::gainToDecibels((float) fftSize / 2) > threshold)
+                    if (analysisDecibels[i] - Decibels::gainToDecibels((float) fftSize / 2) > threshold)
                     {
                         localMaximaIndexes.push_back(i);
                         localMaximaCounter++;
@@ -197,19 +197,19 @@ private:
             auto baseFreqIndexIterator = std::find_if(
                 localMaximaIndexes.begin(),
                 localMaximaIndexes.end(),
-                [&](const auto binIndex) { return analysisBins[binIndex] > 0; });
-            auto localMaximaIndexesInterator = baseFreqIndexIterator;
+                [&](auto binIndex) { return analysisBins[binIndex] > 0; });
+            auto localMaximaIndexesIterator = baseFreqIndexIterator;
 
-            while (localMaximaIndexesInterator != localMaximaIndexes.end())
+            while (localMaximaIndexesIterator != localMaximaIndexes.end())
             {
-                float partial = analysisBins[*localMaximaIndexesInterator] / analysisBins[*baseFreqIndexIterator];
+                float partial = analysisBins[*localMaximaIndexesIterator] / analysisBins[*baseFreqIndexIterator];
 
                 jassert(partial > 0);
 
                 if (partial > 0)
                     partials.push_back(partial);
 
-                localMaximaIndexesInterator++;
+                localMaximaIndexesIterator++;
             }
 
             // clear previous complex spectrum
@@ -218,14 +218,6 @@ private:
 
         void generateComplexSpectrum(float freqScaleFactor)
         {
-            // int maximaIndex = 0;
-
-            // for (int i = 0; i < localMaximaIndexes.size(); ++i)
-            // {
-            //     if (decibelData[maximaIndex] < decibelData[localMaximaIndexes[i]])
-            //         maximaIndex = localMaximaIndexes[i];
-            // }
-
             for (int i = 0; i <= fftSize / 2; ++i)
                 lastOutputPhases[i] = wrapPhase(lastOutputPhases[i] + MathConstants<float>::twoPi * freqScaleFactor * analysisBins[i] / fftSize * hopSize);
 
@@ -251,7 +243,7 @@ private:
 
                 dsp::Matrix<float> mainLobeBins(1, 9, mainLobeRange);
                 dsp::Matrix<float> mainLobe { generateMainLobe(mainLobeBins) };
-                mainLobe *= Decibels::decibelsToGain(decibelData[filteredLocalMaximaIndexs[i]]);
+                mainLobe *= Decibels::decibelsToGain(analysisDecibels[filteredLocalMaximaIndexs[i]]);
                 float phase = lastOutputPhases[filteredLocalMaximaIndexs[i]];
 
                 std::vector<int> localMaximaBins(9);
@@ -262,9 +254,13 @@ private:
                     dsp::Complex<float> z { mainLobe(0, ii) * std::cos(phase), mainLobe(0, ii) * std::sin(phase) };
 
                     if (localMaximaBins[ii] == 0 || localMaximaBins[ii] == fftSize / 2)
-                        synthComplexInput[localMaximaBins[ii]] += dsp::Complex<float> { mainLobe(0, ii), 0 };
+                        synthComplexInput[localMaximaBins[ii]] += dsp::Complex<float> { mainLobe(0, ii) * std::cos(phase), 0 };
                     else if (localMaximaBins[ii] > 0 && localMaximaBins[ii] < fftSize / 2)
                         synthComplexInput[localMaximaBins[ii]] += z;
+                    else if (localMaximaBins[ii] < 0)
+                        synthComplexInput[-localMaximaBins[ii]] += std::conj(z);
+                    else if (localMaximaBins[ii] > fftSize / 2)
+                        synthComplexInput[fftSize - localMaximaBins[ii]] += std::conj(z);
                 }
             }
 
@@ -316,7 +312,7 @@ private:
             zeromem(synthComplexInput, sizeof(synthComplexInput));
             zeromem(synthComplexOutput, sizeof(synthComplexOutput));
             std::fill(analysisBins.begin(), analysisBins.end(), 0);
-            std::fill(decibelData.begin(), decibelData.end(), 0);
+            std::fill(analysisDecibels.begin(), analysisDecibels.end(), 0);
             std::fill(unwrappedGrainBuffer.begin(), unwrappedGrainBuffer.end(), 0);
             std::fill(unwrappedSineBuffer.begin(), unwrappedSineBuffer.end(), 0);
             std::fill(unwrappedWindowBuffer.begin(), unwrappedWindowBuffer.end(), 0);
@@ -344,7 +340,7 @@ private:
                 float magnitude = std::sin(MathConstants<float>::pi * fractionalBins(0, i)) / std::sin(MathConstants<float>::pi * fractionalBins(0, i) / N);
 
                 if (std::isnan(magnitude))
-                    magnitude = 1;
+                    magnitude = N;
 
                 sincMainLobe(0, i) = magnitude;
             }
@@ -377,7 +373,7 @@ private:
         float fftData[2 * fftSize];
         dsp::Complex<float>* fftComplexData;
         std::vector<float> analysisBins;
-        std::vector<float> decibelData;
+        std::vector<float> analysisDecibels;
         const int sinusoidalNum = 30;
         std::vector<int> localMaximaIndexes;
         int localMaximaCounter = 0;
